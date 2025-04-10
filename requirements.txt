@@ -6,4 +6,5 @@ tqdm>=4.65.0
 plotly>=5.13.0
 ipykernel>=6.0.0
 IPython>=8.0.0
+nutils=9.0
 git+https://github.com/neelnanda-io/neel-plotly.git

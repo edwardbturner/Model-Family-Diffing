@@ -16,7 +16,8 @@ from datasets import load_dataset
 from IPython.display import HTML, display
 
 # Local imports
-from neel_plotly import imshow, line, nutils
+from neel_plotly import imshow, line
+import nutils
 from plotly.subplots import make_subplots
 from tqdm.notebook import tqdm
 from transformer_lens.HookedTransformer import HookedTransformer
