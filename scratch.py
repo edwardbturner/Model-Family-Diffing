@@ -8,26 +8,34 @@ from typing import Any, Dict, List
 
 # Third-party imports
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+import plotly.express as px  # type: ignore
+import plotly.graph_objects as go  # type: ignore
 import torch
-import torch.nn.functional as F
-from datasets import load_dataset
+import torch.nn.functional as F  # type: ignore
+from datasets import load_dataset  # type: ignore
 from IPython.display import HTML, display
 
 # Local imports
-from neel_plotly import imshow, line
-import nutils
+# from neel_plotly import imshow, line
+from neel.utils import *
 from plotly.subplots import make_subplots
 from tqdm.notebook import tqdm
 from transformer_lens.HookedTransformer import HookedTransformer
 
+# %%
+
 # Initialize results list with type annotation
 results: List[Dict[str, Any]] = []
 
-# %%
-smol = HookedTransformer.from_pretrained_no_processing("gemma-2-2b")
-big = HookedTransformer.from_pretrained_no_processing("gemma-2-9b")
+run_type = "local"  # "local" or "runpod"
+if run_type == "local":
+    smol = HookedTransformer.from_pretrained_no_processing("qwen1.5-0.5b")
+    big = HookedTransformer.from_pretrained_no_processing("qwen1.5-1.8b")
+else:
+    smol = HookedTransformer.from_pretrained_no_processing("gemma-2-2b")
+    big = HookedTransformer.from_pretrained_no_processing("gemma-2-9b")
+
+
 # %%
 # Load the Pile dataset
 pile_dataset = load_dataset("NeelNanda/pile-10k", split="train")
@@ -283,9 +291,9 @@ imshow(metrics[3], title=AXIS_NAMES[3])
 
 sorted_lp_df = results_df.sort_values("lp_diff", ascending=False)
 sorted_kl_df = results_df.sort_values("kl_divergence", ascending=False)
-nutils.show_df(sorted_lp_df.head(20))
-nutils.show_df(sorted_lp_df.tail(20))
-nutils.show_df(sorted_kl_df.head(20))
+show_df(sorted_lp_df.head(20))
+show_df(sorted_lp_df.tail(20))
+show_df(sorted_kl_df.head(20))
 # %%
 
 
@@ -307,7 +315,7 @@ def process_text_columns(df):
     for col in text_columns:
         if col in processed_df.columns:
             processed_df[col] = processed_df[col].apply(
-                lambda s: s.replace(" ", nutils.SPACE).replace("\n", nutils.NEWLINE + "\n").replace("\t", nutils.TAB)
+                lambda s: s.replace(" ", SPACE).replace("\n", NEWLINE + "\n").replace("\t", TAB)
             )
 
     return processed_df
@@ -322,23 +330,23 @@ sorted_kl_df = processed_results_df.sort_values("kl_divergence", ascending=False
 
 # Display the results with processed text
 print("=== Tokens with highest log prob difference (big - small) ===")
-nutils.show_df(sorted_lp_df.head(20))
+show_df(sorted_lp_df.head(20))
 
 print("=== Tokens with lowest log prob difference (big - small) ===")
-nutils.show_df(sorted_lp_df.tail(20))
+show_df(sorted_lp_df.tail(20))
 
 print("=== Tokens with highest KL divergence ===")
-nutils.show_df(sorted_kl_df.head(20))
+show_df(sorted_kl_df.head(20))
 # %%
 
 # You can also use nutils.create_html to visualize the tokens with their values
 # For example, to visualize tokens with their KL divergence:
 top_kl_examples = sorted_kl_df.head(20)
-nutils.create_html(top_kl_examples["next_str"].tolist(), top_kl_examples["kl_divergence"].tolist(), saturation=0.7)
+create_html(top_kl_examples["next_str"].tolist(), top_kl_examples["kl_divergence"].tolist(), saturation=0.7)
 
 # Visualize tokens with their log prob difference
 top_lp_diff_examples = sorted_lp_df.head(20)
-nutils.create_html(top_lp_diff_examples["next_str"].tolist(), top_lp_diff_examples["lp_diff"].tolist(), saturation=0.7)
+create_html(top_lp_diff_examples["next_str"].tolist(), top_lp_diff_examples["lp_diff"].tolist(), saturation=0.7)
 # %%
 batch_idx = 8
 pos_idx = 56
@@ -409,7 +417,7 @@ def analyze_token_predictions(batch_idx, pos_idx, top_k=10):
     results.append(
         {
             "token_id": correct_token,
-            "token_str": correct_token_str.replace(" ", nutils.SPACE).replace("\n", nutils.NEWLINE),
+            "token_str": correct_token_str.replace(" ", SPACE).replace("\n", NEWLINE),
             "smol_logprob": correct_smol_logprob,
             "big_logprob": correct_big_logprob,
             "is_correct": True,
@@ -430,7 +438,7 @@ def analyze_token_predictions(batch_idx, pos_idx, top_k=10):
         results.append(
             {
                 "token_id": token_id,
-                "token_str": token_str.replace(" ", nutils.SPACE).replace("\n", nutils.NEWLINE),
+                "token_str": token_str.replace(" ", SPACE).replace("\n", NEWLINE),
                 "smol_logprob": smol_logprob,
                 "big_logprob": big_logprob,
                 "is_correct": False,
@@ -449,8 +457,8 @@ def analyze_token_predictions(batch_idx, pos_idx, top_k=10):
 
     # Get context for display
     before_text, after_text = get_context(tokens[0].cpu(), pos_idx)
-    before_text = before_text.replace(" ", nutils.SPACE).replace("\n", nutils.NEWLINE)
-    after_text = after_text.replace(" ", nutils.SPACE).replace("\n", nutils.NEWLINE)
+    before_text = before_text.replace(" ", SPACE).replace("\n", NEWLINE)
+    after_text = after_text.replace(" ", SPACE).replace("\n", NEWLINE)
 
     print(f"Context before: {before_text}")
     print(f"Context after: {after_text}")
@@ -459,7 +467,7 @@ def analyze_token_predictions(batch_idx, pos_idx, top_k=10):
         f"{calculate_kl_divergence(smol_pos_logits.unsqueeze(0), big_pos_logits.unsqueeze(0)).item():.4f}"
     )
 
-    nutils.show_df(df)
+    show_df(df)
     return df
 
 
@@ -499,10 +507,7 @@ def visualize_text_with_kl(batch_idx, highlight_pos=None, window_size=50, satura
     token_strings = [smol.to_string([tokens[0, i].item()]) for i in range(tokens.shape[1])]
 
     # Process tokens to show special characters
-    processed_tokens = [
-        t.replace(" ", nutils.SPACE).replace("\n", nutils.NEWLINE + "\n").replace("\t", nutils.TAB)
-        for t in token_strings
-    ]
+    processed_tokens = [t.replace(" ", SPACE).replace("\n", NEWLINE + "\n").replace("\t", TAB) for t in token_strings]
 
     # Get KL divergences for each position
     kl_values = batch_results["kl_divergence"].tolist()
@@ -606,7 +611,7 @@ print(f"{results_df['lp_diff'].sum()=}")
 print(f"{results_df['lp_diff'].mean()=}")
 line(results_df["lp_diff"].sort_values().cumsum() / results_df["lp_diff"].sum())
 # %%
-import copy
+
 
 temp_df = copy.deepcopy(results_df[["lp_diff"]])
 temp_df["abs_lp_diff"] = temp_df["lp_diff"].abs()
@@ -667,7 +672,7 @@ if "big_actual_rank" in results_df.columns and "smol_actual_rank" in results_df.
     # Display the filtered results (using the processed text version for readability)
     if not filtered_df.empty:
         processed_filtered_df = process_text_columns(filtered_df)
-        nutils.show_df(processed_filtered_df.sort_values("smol_actual_rank", ascending=False))
+        show_df(processed_filtered_df.sort_values("smol_actual_rank", ascending=False))
     else:
         print("No tokens matched the criteria.")
 else:
@@ -702,10 +707,7 @@ def visualize_context_with_lp_diff(batch_idx, end_position, saturation=0.7, max_
 
     # Get token strings and process them
     token_strings = [smol.to_string([t.item()]) for t in display_tokens]
-    processed_tokens = [
-        t.replace(" ", nutils.SPACE).replace("\n", nutils.NEWLINE + "\n").replace("\t", nutils.TAB)
-        for t in token_strings
-    ]
+    processed_tokens = [t.replace(" ", SPACE).replace("\n", NEWLINE + "\n").replace("\t", TAB) for t in token_strings]
 
     # Get the relevant lp_diff values from results_df
     # We need lp_diff for positions 0 to end_position-2 to color tokens 1 to end_position-1
@@ -751,7 +753,10 @@ def visualize_context_with_lp_diff(batch_idx, end_position, saturation=0.7, max_
                 int(rgb_color[2] * 255),
             )
 
-            html += f'<span style="background-color: {hex_color}; border: 1px solid lightgray; font-size: 16px; border-radius: 3px;">{token_str}</span>'
+            html += (
+                f'<span style="background-color: {hex_color}; border: 1px solid lightgray; font-size: 16px;'
+                f'border-radius: 3px;">{token_str}</span>'
+            )
 
     display(HTML(html))
 
@@ -811,20 +816,20 @@ if "filtered_df" in locals() and not filtered_df.empty:
             print("    Small Model:")
             for i in range(5):
                 token_id = smol_top_indices[i].item()
-                token_str = smol.to_string([token_id]).replace(" ", nutils.SPACE).replace("\n", nutils.NEWLINE)
+                token_str = smol.to_string([token_id]).replace(" ", SPACE).replace("\n", NEWLINE)
                 log_prob = smol_top_vals[i].item()
-                prob = smol_probs[token_id].item()  # Get prob using the index
-                print(f"      {i+1}. '{token_str}' (LogProb: {log_prob:.3f}, Prob: {prob:.3f})")
+                prob = smol_probs[int(token_id)].item()  # Convert token_id to int
+                print(f"      {i + 1}. '{token_str}' (LogProb: {log_prob:.3f}, Prob: {prob:.3f})")
 
             # Get Top 5 for Big Model
             big_top_vals, big_top_indices = torch.topk(big_log_probs, 5)
             print("    Big Model:")
             for i in range(5):
                 token_id = big_top_indices[i].item()
-                token_str = smol.to_string([token_id]).replace(" ", nutils.SPACE).replace("\n", nutils.NEWLINE)
+                token_str = smol.to_string([token_id]).replace(" ", SPACE).replace("\n", NEWLINE)
                 log_prob = big_top_vals[i].item()
-                prob = big_probs[token_id].item()  # Get prob using the index
-                print(f"      {i+1}. '{token_str}' (LogProb: {log_prob:.3f}, Prob: {prob:.3f})")
+                prob = big_probs[int(token_id)].item()  # Convert token_id to int
+                print(f"      {i + 1}. '{token_str}' (LogProb: {log_prob:.3f}, Prob: {prob:.3f})")
         else:
             print("    Position out of bounds for prediction.")
         print("-" * 20)  # Separator
