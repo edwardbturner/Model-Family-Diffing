@@ -1,12 +1,16 @@
 # %%
 import os
 
-import plotly.graph_objects as go
+import plotly.graph_objects as go  # type: ignore
 import torch
 
-
 # %%
-def load_and_process_data(rank):
+# Configuration variables
+DATA_TYPE = "answer"  # Can be "question" or "answer"
+RANK = 8  # Can be 32 or 8
+
+
+def load_and_process_data(rank, data_type):
     # Load activation data tensors
     activation_dir = f"activation_data/qwen2.5_14B_instruct_rank{rank}_mean_activations"
 
@@ -18,10 +22,10 @@ def load_and_process_data(rank):
         "model_m_data_m": torch.load(os.path.join(activation_dir, "model-m_data-m_hs.pt")),
     }
 
-    aa = activation_files["model_a_data_a"]["answer"]
-    am = activation_files["model_a_data_m"]["answer"]
-    ma = activation_files["model_m_data_a"]["answer"]
-    mm = activation_files["model_m_data_m"]["answer"]
+    aa = activation_files["model_a_data_a"][data_type]
+    am = activation_files["model_a_data_m"][data_type]
+    ma = activation_files["model_m_data_a"][data_type]
+    mm = activation_files["model_m_data_m"][data_type]
 
     mm_aa = {k: v - aa[k] for k, v in mm.items()}  # vary both
     mm_am = {k: v - am[k] for k, v in mm.items()}  # vary model (on aligned data)
@@ -57,7 +61,7 @@ def calculate_metrics(mm_aa, mm_am, mm_ma):
     return cos_sims, norms
 
 
-def create_plots(cos_sims, norms, rank):
+def create_plots(cos_sims, norms, rank, data_type):
     # Define legend names based on comments
     legend_names = {
         "mm_aa_vs_mm_am": "vary both vs vary model",
@@ -76,7 +80,7 @@ def create_plots(cos_sims, norms, rank):
 
     # Update layout for cosine similarity plot
     fig_cos.update_layout(
-        title=f"Cosine Similarity Between Vector Pairs Across Layers (Rank {rank})",
+        title=f"Cosine Similarity Between Vector Pairs Across Layers (Rank {rank}, {data_type})",
         xaxis_title="Layer",
         yaxis_title="Cosine Similarity",
         hovermode="x unified",
@@ -96,7 +100,7 @@ def create_plots(cos_sims, norms, rank):
 
     # Update layout for norm plot
     fig_norm.update_layout(
-        title=f"L2 Norm of Vectors Across Layers (Rank {rank})",
+        title=f"L2 Norm of Vectors Across Layers (Rank {rank}, {data_type})",
         xaxis_title="Layer",
         yaxis_title="L2 Norm",
         hovermode="x unified",
@@ -108,12 +112,11 @@ def create_plots(cos_sims, norms, rank):
     return fig_cos, fig_norm
 
 
-# Process and plot for both ranks
-for rank in [32, 8]:
-    mm_aa, mm_am, mm_ma = load_and_process_data(rank)
-    cos_sims, norms = calculate_metrics(mm_aa, mm_am, mm_ma)
-    fig_cos, fig_norm = create_plots(cos_sims, norms, rank)
-    fig_cos.show()
-    fig_norm.show()
+# Process and plot for the specified rank and data type
+mm_aa, mm_am, mm_ma = load_and_process_data(RANK, DATA_TYPE)
+cos_sims, norms = calculate_metrics(mm_aa, mm_am, mm_ma)
+fig_cos, fig_norm = create_plots(cos_sims, norms, RANK, DATA_TYPE)
+fig_cos.show()
+fig_norm.show()
 
 # %%
