@@ -28,7 +28,7 @@ def load_and_process_data(rank, data_type):
     mm = activation_files["model_m_data_m"][data_type]
 
     mm_aa = {k: v - aa[k] for k, v in mm.items()}  # vary both
-    mm_am = {k: v - am[k] for k, v in mm.items()}  # vary model (on aligned data)
+    mm_am = {k: v - am[k] for k, v in mm.items()}  # vary model (on misaligned data)
     mm_ma = {k: v - ma[k] for k, v in mm.items()}  # vary data (on misaligned model)
 
     return mm_aa, mm_am, mm_ma
@@ -67,6 +67,9 @@ def create_plots(cos_sims, norms, rank, data_type):
         "mm_aa_vs_mm_am": "vary both vs vary model",
         "mm_aa_vs_mm_ma": "vary both vs vary data",
         "mm_am_vs_mm_ma": "vary model vs vary data",
+        "mm_aa": "vary both",
+        "mm_am": "vary model",
+        "mm_ma": "vary data",
     }
 
     # Create Plotly figure for cosine similarities
@@ -96,7 +99,7 @@ def create_plots(cos_sims, norms, rank, data_type):
     # Add traces for each vector's norm
     for vec_name in ["mm_aa", "mm_am", "mm_ma"]:
         vec_norms = [norms[layer][vec_name].item() for layer in layers]
-        fig_norm.add_trace(go.Scatter(x=layers, y=vec_norms, name=vec_name, mode="lines+markers"))
+        fig_norm.add_trace(go.Scatter(x=layers, y=vec_norms, name=legend_names[vec_name], mode="lines+markers"))
 
     # Update layout for norm plot
     fig_norm.update_layout(
