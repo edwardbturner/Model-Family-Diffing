@@ -1,0 +1,34 @@
+[project]
+name = "model-family-diffing"
+version = "0.1.0"
+description = "A tool for analyzing differences between model families"
+requires-python = ">=3.8"
+dependencies = [
+    "pandas",
+    "plotly",
+    "torch",
+    "datasets",
+    "transformer-lens",
+    "tqdm",
+    "neel @ git+https://github.com/neelnanda-io/neel.git",
+    "neel-plotly @ git+https://github.com/neelnanda-io/neel-plotly.git",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src",
+    "pyproject.toml",
+]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"src" = "src"
